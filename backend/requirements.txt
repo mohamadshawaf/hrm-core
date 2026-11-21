@@ -1,0 +1,9 @@
+fastapi>=0.115,<1
+pydantic>=2,<3
+PyJWT>=2.8,<3
+uvicorn>=0.30,<1
+# Required for the optional PostgreSQL connection path; SQLite tests work
+# without the driver installed.
+psycopg[binary]>=3.2,<4
+# AES-256-GCM encryption of queued email verification and recovery payloads.
+cryptography>=43,<52

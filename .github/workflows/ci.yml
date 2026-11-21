@@ -1,0 +1,94 @@
+name: HRM Core CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api-and-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: hrm_ci
+          POSTGRES_USER: hrm_test
+          POSTGRES_PASSWORD: disposable_ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hrm_test -d hrm_ci"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      HRM_TEST_POSTGRES_DSN: postgresql://hrm_test:disposable_ci_password@127.0.0.1:5432/hrm_ci
+      HRM_PG_TEST_ALLOW_SCHEMA_CREATE: '1'
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+      - name: Check source snapshot for private artifact names
+        working-directory: .
+        run: python scripts/check_public_artifacts.py
+      - name: Install backend dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Compile and run all API + PostgreSQL tests
+        run: |
+          python -m compileall -q app tests
+          python -m unittest discover -s tests -v
+
+  flutter-web-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: flutter_client
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate missing platform scaffolding
+        run: flutter create --empty --platforms=android,web .
+      - name: Flutter dependencies and static analysis
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+      - name: Compile Web
+        run: flutter build web --release --dart-define=HRM_API_BASE_URL=https://hrm.example.invalid
+      - name: Compile Android APK
+        run: flutter build apk --release --dart-define=HRM_API_BASE_URL=https://hrm.example.invalid
+
+  flutter-ios:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: flutter_client
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate iOS scaffolding and dependencies
+        run: |
+          flutter create --empty --platforms=ios .
+          flutter pub get
+          flutter analyze
+          flutter test
+      - name: Compile iOS (unsigned)
+        run: flutter build ios --release --no-codesign --dart-define=HRM_API_BASE_URL=https://hrm.example.invalid

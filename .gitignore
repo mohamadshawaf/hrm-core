@@ -1,0 +1,31 @@
+# Local Python environments, test output, SQLite data and verification secrets
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.sqlite*
+*.db
+verification-outbox.txt
+invitation-outbox.txt
+reset-outbox.txt
+*.sqlite3
+data/
+*.pem
+*.p12
+*.pfx
+*.key
+coverage/
+*.log
+
+# Generated Flutter files and build outputs (scaffolding can be committed
+# separately once generated and reviewed for all selected platforms).
+.dart_tool/
+.flutter-plugins*
+.packages
+build/
+.metadata
+flutter_client/.idea/
+flutter_client/.vscode/

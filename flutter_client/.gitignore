@@ -1,0 +1,11 @@
+.dart_tool/
+.flutter-plugins*
+.packages
+build/
+.idea/
+*.iml
+*.log
+.env
+*.jks
+*.keystore
+key.properties
